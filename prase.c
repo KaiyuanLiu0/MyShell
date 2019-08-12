@@ -124,6 +124,7 @@ static CMDL SplitCommand(char **tokens)
             // copy the arguments into the cmd for the fommer command
             if (position != 0)
             {
+                commandList[command->argc++] = NULL;
                 command->argv = (char**) malloc(sizeof(char*) * command->argc);
                 for (i = command->argc - 1; i >= 0; --i)
                 {
@@ -136,25 +137,27 @@ static CMDL SplitCommand(char **tokens)
             command->cmd = (char*) malloc(sizeof(char) * (strlen(tokens[position]) + 1));
             strcpy(command->cmd, tokens[position]);
         }
-        else
+        argument = (char*) malloc(sizeof(char) * (strlen(tokens[position] + 1)));
+        strcpy(argument, tokens[position]);
+        argumentList[command->argc++] = argument;
+    }
+    if (command) // if there is any command
+    {
+        // the last command's arguments
+        commandList[command->argc++] = NULL;
+        command->argv = (char**) malloc(sizeof(char*) * command->argc);
+        for (i = command->argc - 1; i >= 0; --i)
         {
-            argument = (char*) malloc(sizeof(char) * (strlen(tokens[position] + 1)));
-            strcpy(argument, tokens[position]);
-            argumentList[command->argc++] = argument;
+            command->argv[i] = argumentList[i];
+        }
+        commandList[cmdl->size++] = command;
+        cmdl->command = (CMD*) malloc(sizeof(CMD) * cmdl->size);
+        for (i = 0; i < cmdl->size; ++i)
+        {
+            cmdl->command[i] = commandList[i];
         }
     }
-    // the last command's arguments
-    command->argv = (char**) malloc(sizeof(char*) * command->argc);
-    for (i = command->argc - 1; i >= 0; --i)
-    {
-        command->argv[i] = argumentList[i];
-    }
-    commandList[cmdl->size++] = command;
-    cmdl->command = (CMD*) malloc(sizeof(CMD) * cmdl->size);
-    for (i = 0; i < cmdl->size; ++i)
-    {
-        cmdl->command[i] = commandList[i];
-    }
+    
     return cmdl;
 }
 

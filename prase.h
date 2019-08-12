@@ -24,7 +24,7 @@ typedef struct Command
 typedef struct CommandLine
 {
     CMD* command;
-    int size;                 // how many command;
+    int size;     // how many command;
 } *CMDL;
 
 // read a line of command
