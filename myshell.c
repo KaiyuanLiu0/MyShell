@@ -22,7 +22,8 @@
 // postcondition: a prompt printed
 static void Prompt()
 {
-    printf("> ");
+    char* path = getcwd(NULL, 0);
+    printf("%s> ", path);
 }
 
 // init the shell

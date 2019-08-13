@@ -1,6 +1,6 @@
 CC=gcc
 TARGET=myshell
-SRC=myshell.c prase.c process.c
+SRC=myshell.c prase.c process.c internal.c
 OBJ=$(SRC:.c=.o)
 LDFLAGS=
 

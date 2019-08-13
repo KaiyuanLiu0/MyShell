@@ -2,6 +2,19 @@
 #define PROCESS_H_
 #include <stdio.h>
 #include "prase.h"
+
+// store background jobs
+typedef struct Job {
+    pid_t pid;
+    CMD cmd;
+} *J;
+
+typedef struct JobList {
+    J job;
+    int size;
+} *JL;
+
+
 // itnernal command id
 enum CMD_ID
 {
