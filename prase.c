@@ -40,7 +40,7 @@ static char *ReadLine()
 // split a line of string by the delimiter DELIM
 // precondition: a line of string
 // postcondition: array of string
-char **SplitToken(char *line)
+static char **SplitToken(char *line)
 {
     char *token = NULL;
     char **tokens = (char **)malloc(sizeof(char *) * MAX_TOKEN);
@@ -114,6 +114,8 @@ static CMDL SplitCommand(char **tokens)
     char* argumentList[MAX_TOKEN] = {NULL}; // temporarily store the arguments
     char* argument = NULL; // temporarily store the argument
     bool begin = true; // mark whther the beginning of a command
+    bool redirect_out = false;
+    bool redirect_in = false;
     CMDL cmdl = NULL;
     cmdl = InitializeCommandLine();
     for (position = 0; position < MAX_TOKEN - 1 && tokens[position] != NULL; ++position)
@@ -132,10 +134,44 @@ static CMDL SplitCommand(char **tokens)
                 }
                 commandList[cmdl->size++] = command;
             }
-            // create a command
-            command = InitializeCommand();
-            command->cmd = (char*) malloc(sizeof(char) * (strlen(tokens[position]) + 1));
-            strcpy(command->cmd, tokens[position]);
+            else
+            {
+                // create a command
+                command = InitializeCommand();
+                command->cmd = (char*) malloc(sizeof(char) * (strlen(tokens[position]) + 1));
+                strcpy(command->cmd, tokens[position]);
+            }
+        }
+        if (redirect_out)
+        {
+            redirect_out = false;
+            command->out = (char*) malloc(sizeof(char) * (strlen(tokens[position]) + 1));
+            strcpy(command->out, tokens[position]);
+            continue;
+        }
+        if (redirect_in)
+        {
+            redirect_in = false;
+            command->in = (char*) malloc(sizeof(char) * sizeof(strlen(tokens[position]) + 1));
+            strcpy(command->in, tokens[position]);
+            continue;
+        }
+        if (!strcmp(tokens[position], "&"))
+        {
+            command->backgroud = true;
+            begin = true;
+            continue;
+        }
+        if (!strcmp(tokens[position], ">") || !strcmp(tokens[position], ">>"))
+        {
+            redirect_out = true;
+            command->append = (strcmp(tokens[position], ">>") == 0);
+            continue;
+        }
+        if (!strcmp(tokens[position], "<"))
+        {
+            redirect_in = true;
+            continue;
         }
         argument = (char*) malloc(sizeof(char) * (strlen(tokens[position] + 1)));
         strcpy(argument, tokens[position]);

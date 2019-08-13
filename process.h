@@ -3,17 +3,15 @@
 #include <stdio.h>
 #include "prase.h"
 
+typedef unsigned int jid_t;
 // store background jobs
 typedef struct Job {
-    pid_t pid;
-    CMD cmd;
-} *J;
-
-typedef struct JobList {
-    J job;
+    pid_t pgid;
+    jid_t jid;
+    CMD command;
     int size;
-} *JL;
-
+    struct Job *next;
+} *J;
 
 // itnernal command id
 enum CMD_ID
@@ -41,8 +39,9 @@ enum CMD_ID
 };
 
 enum CMD_ID is_internal_cmd(CMD);
-int is_pipe(char *cmd, int cmdlen);
-int is_io_redirect(char *cmd, int cmdlen);
+int is_pipe(CMD command);
+int is_io_redirect(CMD command);
 int normal_cmd(char *cmd, int cmdlen, int infd, int out, int fork);
 int ExecuteCommand(CMDL);
+int Dup(CMD command, int fd[2]);
 #endif

@@ -15,15 +15,14 @@
 #include <sys/ipc.h>
 #include "internal.h"
 
-
-
-int Internal_bg(CMD command)
+extern int Dup(CMD command, int fd[2]);
+int Internal_bg(CMD command, int fd[2])
 {
     ;    
 }
 
 // cd
-int Internal_cd(CMD command)
+int Internal_cd(CMD command, int fd[2])
 {
     int ret;
     char *path;
@@ -48,7 +47,7 @@ int Internal_cd(CMD command)
 }
 
 // clear
-int Internal_clr(CMD command)
+int Internal_clr(CMD command, int fd[2])
 {
     // string to clear the screen
     // ANSI escape sequence
@@ -67,12 +66,12 @@ int Internal_clr(CMD command)
         return 0;
 }
 
-int Internal_dir(CMD command)
+int Internal_dir(CMD command, int fd[2])
 {
     pid_t pid;
 }
 
-int Internal_echo(CMD command)
+int Internal_echo(CMD command, int fd[2])
 {
     int i;
     pid_t pid;
@@ -84,6 +83,7 @@ int Internal_echo(CMD command)
     }
     else if (pid == 0)
     {
+        Dup(command, fd);
         for (i = 1; i < command->argc - 1; ++i)
         {
             printf("%s ", command->argv[i]);
@@ -101,7 +101,7 @@ int Internal_echo(CMD command)
 // this should not fork a child
 // since the original shell should
 // be replaced by the new process
-int Internal_exec(CMD command)
+int Internal_exec(CMD command, int fd[2])
 {
     int ret;
     // argc > 2 means exec has instead command
@@ -117,12 +117,12 @@ int Internal_exec(CMD command)
 }
 
 // exit
-int Internal_exit(CMD command)
+int Internal_exit(CMD command, int fd[2])
 {
     exit(EXIT_SUCCESS);
 }
 
-int Internal_environ(CMD command)
+int Internal_environ(CMD command, int fd[2])
 {
     extern char **environ;
     char **env = environ;
@@ -135,6 +135,7 @@ int Internal_environ(CMD command)
     }
     else if (pid == 0) // child
     {
+        Dup(command, fd);
         while (*env)
             puts(*env++);
         exit(EXIT_SUCCESS);
@@ -146,23 +147,39 @@ int Internal_environ(CMD command)
     }
 }
 
-int Internal_fg(CMD command)
+int Internal_fg(CMD command, int fd[2])
 {
     ;
 }
 
-int Internal_help(CMD command)
+int Internal_help(CMD command, int fd[2])
 {
-    printf("%s\n", "to be done");
+    int pid;
+    pid = fork();
+    if (pid < 0)
+    {
+        Error("fork error");
+        return -1;
+    }
+    else if (pid == 0)
+    {
+        Dup(command, fd);
+        printf("%s\n", "to be done");
+        exit(EXIT_SUCCESS);
+    }
+    else
+    {
+        return 0;
+    }
 }
 
-int Internal_jobs(CMD command)
+int Internal_jobs(CMD command, int fd[2])
 {
     ;
 }
 
 // pwd
-int Internal_pwd(CMD command)
+int Internal_pwd(CMD command, int fd[2])
 {
     char *path;
     pid_t pid;
@@ -176,7 +193,8 @@ int Internal_pwd(CMD command)
     {
         // get the pwd, allocate memory automatically
         char *path = getcwd(NULL, 0);
-        printf("%s\n", path);
+        Dup(command, fd);
+        dprintf(STDOUT_FILENO, "%s\n", path);
         // free the memory
         free(path);
         // exit the child process
@@ -190,12 +208,12 @@ int Internal_pwd(CMD command)
 }
 
 // exit
-int Internal_quit(CMD command)
+int Internal_quit(CMD command, int fd[2])
 {
     exit(EXIT_SUCCESS);
 }
 
-int Internal_set(CMD command)
+int Internal_set(CMD command, int fd[2])
 {
     int ret;
     // if at least two arguments
@@ -207,12 +225,13 @@ int Internal_set(CMD command)
     return -1;
 }
 
-int Internal_shift(CMD command)
+int Internal_shift(CMD command, int fd[2])
 {
-    ;
+    shiftarg();
+    return 0;
 }
 
-int Internal_test(CMD command)
+int Internal_test(CMD command, int fd[2])
 {
     int status;
     pid_t pid;
@@ -249,7 +268,7 @@ int Internal_test(CMD command)
     return 0;
 }
 
-int Internal_time(CMD command)
+int Internal_time(CMD command, int fd[2])
 {
     time_t rawTime;
     struct tm *timeInfo;
@@ -266,7 +285,8 @@ int Internal_time(CMD command)
         time(&rawTime);                 // get the raw time
         timeInfo = localtime(&rawTime); // change to local time
         resultTime = asctime(timeInfo); // change format
-        printf("%s", resultTime);
+        Dup(command, fd);
+        dprintf(STDOUT_FILENO, "%s", resultTime);
         exit(EXIT_SUCCESS);
     }
     else
@@ -276,9 +296,10 @@ int Internal_time(CMD command)
     }
 }
 
-int Internal_umask(CMD command)
+int Internal_umask(CMD command, int fd[2])
 {
     mode_t mode;
+    pid_t pid;
     // set umask if any argument
     if (command->argc > 2)
     {
@@ -287,14 +308,29 @@ int Internal_umask(CMD command)
     else
     {
         // print the current umask
-        mode = umask(0);
-        umask(mode);
-        printf("%04o\n", mode);
+        pid = fork();
+        if (pid < 0)
+        {
+            Error("fork error");
+            return -1;
+        }
+        else if (pid == 0)
+        {
+            Dup(command, fd);
+            mode = umask(0);
+            printf("%04o\n", mode);
+            exit(EXIT_SUCCESS);
+        }
+        else
+        {
+            waitpid(pid, NULL, 0);
+        }
+        
     }
     return 0;
 }
 
-int Internal_unset(CMD command)
+int Internal_unset(CMD command, int fd[2])
 {
     int ret;
     // at least 1 argument

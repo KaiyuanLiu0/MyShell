@@ -81,4 +81,14 @@ int main(int argc, char* argv[])
         cmdl = ReadCommand();
         ExecuteCommand(cmdl);
     }
+    // int i;
+    // CMDL cmdl;
+    // cmdl = ReadCommand();
+    // printf("cmd: %s\n", cmdl->command[0]->cmd);
+    // printf("args: ");
+    // for (i = 0; i < cmdl->command[0]->argc - 1; ++i)
+    //     printf("%s ", cmdl->command[0]->argv[i]);
+    // printf("\n");
+    // printf("in: %s\n", cmdl->command[0]->in);
+    // printf("out: %s\n", cmdl->command[0]->out);
 }
