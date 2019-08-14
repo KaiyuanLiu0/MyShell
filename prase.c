@@ -126,14 +126,14 @@ static CMDL SplitCommand(char **tokens)
             // copy the arguments into the cmd for the fommer command
             if (position != 0)
             {
-                commandList[command->argc++] = NULL;
+                argumentList[command->argc++] = NULL;
                 command->argv = (char**) malloc(sizeof(char*) * command->argc);
                 for (i = command->argc - 1; i >= 0; --i)
                 {
                     command->argv[i] = argumentList[i];
                 }
                 commandList[cmdl->size++] = command;
-                command = InitializeCommand();
+                // command = Initiali   zeCommand();
             }
                 // create a command
                 command = InitializeCommand();
@@ -207,7 +207,9 @@ CMDL ReadCommand()
     char *line = NULL;
     char **tokens = NULL;
     CMDL commandList = NULL;
+    reading = true;
     line = ReadLine();
+    reading = false;
     tokens = SplitToken(line);
     commandList = SplitCommand(tokens);
     // free no use space

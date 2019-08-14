@@ -30,4 +30,5 @@ typedef struct CommandLine
 
 // read a line of command
 CMDL ReadCommand();
+int reading;
 #endif

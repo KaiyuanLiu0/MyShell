@@ -16,7 +16,7 @@
 #include "process.h"
 #include "internal.h"
 
-const char* INTERNAL_COMMAND[_NOT_INTERNAL] = {
+const char *INTERNAL_COMMAND[_NOT_INTERNAL] = {
     "bg",
     "cd",
     "clr",
@@ -35,8 +35,7 @@ const char* INTERNAL_COMMAND[_NOT_INTERNAL] = {
     "test",
     "time",
     "umask",
-    "unset"    
-};
+    "unset"};
 
 // the head of all jobs
 // the head of foregound jobs
@@ -79,26 +78,25 @@ int PrintJobList(jid_t jid)
     // print a certain job info
     if (jid)
     {
-        // first, find it 
+        // first, find it
         ptr_job = FindJob(jid);
         if (ptr_job) // if found
-            printf("[%u] %d %s\n", ptr_job->jid, ptr_job->pid, ptr_job->command->cmd);
+            printf("[%u] %d         %s\n", ptr_job->jid, ptr_job->pid, ptr_job->command->cmd);
         else
-            Error("no such job\n");  
+            Error("no such job\n");
     }
     else // print all jobs
     {
         ptr_job = jobList;
         while (ptr_job)
         {
-            printf("[%u] %d %s\n", ptr_job->jid, ptr_job->pid, ptr_job->command->cmd);
+            printf("[%u] %d         %s\n", ptr_job->jid, ptr_job->pid, ptr_job->command->cmd);
             ptr_job = ptr_job->next;
         }
     }
 }
 
-
-static int AddJob(J job)
+int AddJob(J job)
 {
     J ptr_job = jobList;
     jid_t jid = 0;
@@ -125,38 +123,41 @@ static int AddJob(J job)
     return 0;
 }
 
-static J NewJob()
+J NewJob()
 {
     J job = (J)malloc(sizeof(struct Job));
     job->pid = 0;
     job->jid = 0;
-    job->command=NULL;
+    job->command = NULL;
     job->size = 0;
     job->next = NULL;
     return job;
 }
 
-static int ProcessDone(J job)
+J DeleteJob(pid_t pid)
 {
-    J ptr_job;
-    if (!--job->size)
+    J job = jobList;
+    J temp;
+    jid_t jid = 0;
+    while (job)
     {
-        ptr_job = LastJob(job); // find the last job
-        // delete it from the linked list
-        if (ptr_job == NULL) // if it's the head
-            jobList  = job->next;
+        if (job->pid == pid)
+        {
+            jid = job->jid;
+            temp = FindJob(jid);
+            temp->next = job->next;
+            break;
+        }
         else
-            ptr_job->next = job->next;
-        printf("[%d] %d done\t%s\n", job->jid, job->pid, job->command->cmd);
-        free(job);
+            job = job->next;
     }
+    return job;
 }
 
-// static int ProcessDone(J job)
-// {
-//     if (!--job->size)
-//         JobDone(job);
-// }
+int WaitChild()
+{
+    usleep(100000);
+}
 
 enum CMD_ID is_internal_cmd(CMD command)
 {
@@ -253,6 +254,23 @@ static int ExecuteCommand_Internal(CMD command, enum CMD_ID cmd_id, int fd[2])
     }
 }
 
+int ClosePipe(int *fd)
+{
+    if (fd[0] != STDIN_FILENO)
+        close(fd[0]);
+    if (fd[1] != STDOUT_FILENO)
+        close(fd[1]);
+}
+
+int CheckZombie()
+{
+    int status, pid;
+    while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0)
+    {
+        continue;
+    }
+    return 0;
+}
 
 // execute external command
 int ExecuteCommand_External(CMD command, int fd[2])
@@ -260,7 +278,7 @@ int ExecuteCommand_External(CMD command, int fd[2])
     int status;
     J job;
     pid_t pid;    // process id
-    pid = vfork(); // create a child process
+    pid = fork(); // create a child process
     if (pid < 0)  // error
     {
         Error("Cannot create a child process");
@@ -269,7 +287,7 @@ int ExecuteCommand_External(CMD command, int fd[2])
     else if (pid == 0) // child process
     {
         signal(SIGINT, SIG_DFL);
-        signal(SIGTSTP, SIG_DFL);
+        signal(SIGTSTP, SIG_IGN);
         signal(SIGCONT, SIG_DFL);
         Dup(command, fd);
         if (execvp(command->cmd, command->argv) == -1)
@@ -278,25 +296,27 @@ int ExecuteCommand_External(CMD command, int fd[2])
     }
     else // parent process
     {
-        signal(SIGINT, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN); // important
-        signal(SIGCONT, SIG_DFL);
         if (command->backgroud)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, &status, WUNTRACED);
-            printf("status: %d, pid = %d\n", status, pid);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
-        sleep(0.2);
+        CheckZombie();
         return 0;
     }
 }
@@ -307,10 +327,13 @@ int Foreground(jid_t jid)
     J job = FindJob(jid);
     if (job)
     {
-        tcsetpgrp(STDIN_FILENO, job->pid);
+        setpgid(job->pid, job->pid);
+        tcsetpgrp(1, job->pid);
         ret = kill(job->pid, SIGCONT);
         if (ret < 0)
             Error("fg: job not found");
+        else
+            waitpid(job->pid, NULL, WUNTRACED);
     }
     else
         ret = -1;
@@ -338,7 +361,7 @@ int Dup(CMD command, int fd[2])
     int in_stream = STDIN_FILENO;
     int out_stream = STDOUT_FILENO;
     int o_flag;
-    char errorMessage[512];
+    char errorMessage[BUFFER_SIZE];
     if (command->in)
     {
         in_stream = open(command->in, O_RDONLY);
@@ -377,6 +400,7 @@ int Dup(CMD command, int fd[2])
 int ExecuteCommand(CMDL cmdl)
 {
     int i = 0;
+    int status;
     int fd[2];
     int pipefd[2] = {STDIN_FILENO, STDOUT_FILENO};
     enum CMD_ID cmd_id;
@@ -392,13 +416,15 @@ int ExecuteCommand(CMDL cmdl)
             if (pipe(pipefd) == -1)
                 Error("pipe error");
         }
-        else 
+        else
             pipefd[1] = STDOUT_FILENO;
         fd[1] = pipefd[1];
 
         fflush(stdin);
         fflush(stdout);
         cmd_id = is_internal_cmd(cmdl->command[i]);
+        if (status > 0)
+            printf("Done pid: %d", status);
         // if it is a internal command
         if (cmd_id != _NOT_INTERNAL)
             ExecuteCommand_Internal(cmdl->command[i], cmd_id, fd);

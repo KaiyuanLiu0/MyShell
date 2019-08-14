@@ -45,4 +45,10 @@ int normal_cmd(char *cmd, int cmdlen, int infd, int out, int fork);
 int ExecuteCommand(CMDL);
 int Dup(CMD command, int fd[2]);
 int PrintJobList(jid_t jid);
+int AddJob(J job);
+J NewJob();
+J DeleteJob(pid_t pid);
+int Foreground(jid_t jid);
+int Background(jid_t jid);
+
 #endif

@@ -17,19 +17,39 @@
 #include "prase.h"
 #include "myshell.h"
 
+void sigchldhdlr()
+{
+    pid_t pid;
+    J job;
+    pid = wait(NULL);
+    if (pid > 0)
+    {
+        job = DeleteJob(pid);
+        if (job)
+        {
+            if (reading)
+                printf("\n[%d] %d done    %s\n", job->jid, pid, job->command->cmd);
+            else
+                printf("[%d] %d done    %s\n", job->jid, pid, job->command->cmd);
+        }
+        free(job);
+        // Prompt();
+    }
+}
+
 // print a prompt
 // precondition: none
 // postcondition: a prompt printed
-static void Prompt()
+void Prompt()
 {
     char user[BUFFER_SIZE];
     char hostname[BUFFER_SIZE];
     char* path = getcwd(NULL, 0);
     getlogin_r(user, sizeof(char) * BUFFER_SIZE);
     gethostname(hostname, sizeof(char) * BUFFER_SIZE);
-    printf(COLOR_GREEN "%s@%s:", user, hostname);
-    printf(COLOR_CYAN "%s$ ", path);
-    printf(COLOR_NONE);
+    fprintf(stdout, COLOR_GREEN "%s@%s:", user, hostname);
+    fprintf(stdout, COLOR_CYAN "%s$ ", path);
+    fprintf(stdout, COLOR_NONE);
 }
 
 // init the shell
@@ -41,11 +61,14 @@ void init()
     char* path;
     // link to the path
     char* link = "/proc/self/exe";
+    char* parent;
     // the temporarily buffer size of the path
     ssize_t pathSize = 1024;
     ssize_t len = 0;
     path = (char*) malloc(sizeof(char) * pathSize);
     len = readlink(link, path, pathSize);
+    parent = (char*) malloc(sizeof(char) * (strlen(path) + 9));
+    sprintf(parent, "%s/%s", path, "myshell");
     // if the buffer is small
     while (len >= pathSize)
     {
@@ -57,17 +80,14 @@ void init()
     fflush(stdout);
     // set the path an environment variable
     setenv("myshell", path, 1);
+    setenv("parent", parent, 1);
     // setpath("/bin:/usr/bin");
     free(path);
+    signal(SIGINT, SIG_IGN);
+    signal(SIGTSTP, SIG_IGN);
+    signal(SIGCONT, SIG_DFL);
 }
 
-// read a command from stdin
-// CMDL readcommand()
-// {
-//     CMDL cmdl;
-//     cmdl = ReadCommand();
-//     return cmdl;
-// }
 
 void Error(char* errorMessage)
 {

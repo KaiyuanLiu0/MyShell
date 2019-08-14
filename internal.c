@@ -14,12 +14,23 @@
 #include <sys/msg.h>
 #include <sys/ipc.h>
 #include "internal.h"
-
-extern int Dup(CMD command, int fd[2]);
-extern int PrintJobList(unsigned int jid);
+#include "process.h"
+// extern int Dup(CMD command, int fd[2]);
+// extern int PrintJobList(unsigned int jid);
 int Internal_bg(CMD command, int fd[2])
 {
-    ;    
+    J job;
+    jid_t jid;
+    if (command->argc > 2)
+    {
+        jid = atoi(command->argv[1]);
+        return Background(jid);
+    }
+    else
+    {
+        fprintf(stderr, "%s\n", "bg: no enough arguments");
+        return -1;
+    }
 }
 
 // cd
@@ -57,7 +68,7 @@ int Internal_clr(CMD command, int fd[2])
     // CSI 2J: clear the entire screen
     // CSI 3J: clear entire screen and delete all lines
     //         saved in the scrollback buffer
-    // refer to https://en.wikipedia.org/wiki/ANSI_escape_code
+    // reference to https://en.wikipedia.org/wiki/ANSI_escape_code
     static char clr[] = "\033[3J\033[H\033[2J";
     ssize_t result = 0;
     result = write(STDOUT_FILENO, clr, strlen(clr));
@@ -72,6 +83,7 @@ int Internal_dir(CMD command, int fd[2])
     char errorMessage[512];
     DIR *dir;
     struct dirent *ptr;
+    J job;
     pid_t pid;
     pid = fork();
     if (pid < 0)
@@ -98,7 +110,20 @@ int Internal_dir(CMD command, int fd[2])
     }
     else
     {
-        waitpid(pid, NULL, 0);
+        if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
+        }
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
         return 0;
     }
 }
@@ -106,6 +131,7 @@ int Internal_dir(CMD command, int fd[2])
 int Internal_echo(CMD command, int fd[2])
 {
     int i;
+    J job;
     pid_t pid;
     pid = fork();
     if (pid < 0)
@@ -125,7 +151,20 @@ int Internal_echo(CMD command, int fd[2])
     }
     else
     {
-        waitpid(pid, NULL, 0);
+        if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
+        }
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
         return 0;
     }
 }
@@ -158,6 +197,7 @@ int Internal_environ(CMD command, int fd[2])
 {
     extern char **environ;
     char **env = environ;
+    J job;
     pid_t pid;
     pid = fork();
     if (pid < 0) // fork error
@@ -174,18 +214,42 @@ int Internal_environ(CMD command, int fd[2])
     }
     else
     {
-        waitpid(pid, NULL, 0);
+        if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
+        }
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
         return 0;
     }
 }
 
 int Internal_fg(CMD command, int fd[2])
 {
-    ;
+    jid_t jid;
+    if (command->argc > 2)
+    {   
+        jid = atoi(command->argv[1]);
+        return Foreground(jid);
+    }
+    else
+    {
+        fprintf(stderr, "%s\n", "fg: no enough arguments");
+        return -1;
+    }
 }
 
 int Internal_help(CMD command, int fd[2])
 {
+    J job;
     int pid;
     pid = fork();
     if (pid < 0)
@@ -201,19 +265,61 @@ int Internal_help(CMD command, int fd[2])
     }
     else
     {
-        return 0;
+        if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
+        }
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
     }
 }
 
 int Internal_jobs(CMD command, int fd[2])
 {
-    PrintJobList(0);
+    J job;
+    pid_t pid;
+    pid = fork();
+    if (pid < 0)
+    {
+        Error("fork error");
+        return -1;
+    }
+    else if (pid == 0)
+    {
+        PrintJobList(0);
+    }
+    else
+    {
+        if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
+        }
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
+    }
 }
 
 // pwd
 int Internal_pwd(CMD command, int fd[2])
 {
     char *path;
+    J job;
     pid_t pid;
     pid = fork(); // fork a new process
     if (pid < 0)
@@ -234,7 +340,20 @@ int Internal_pwd(CMD command, int fd[2])
     }
     else // parent process
     {
-        waitpid(pid, NULL, 0);
+        if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
+        }
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
     }
     return 0;
 }
@@ -266,6 +385,7 @@ int Internal_shift(CMD command, int fd[2])
 int Internal_test(CMD command, int fd[2])
 {
     int status;
+    J job;
     pid_t pid;
     pid = fork();
     if (pid < 0) // error
@@ -295,7 +415,20 @@ int Internal_test(CMD command, int fd[2])
     }
     else
     {
-        waitpid(pid, NULL, 0);
+        if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
+        }
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
     }
     return 0;
 }
@@ -305,6 +438,7 @@ int Internal_time(CMD command, int fd[2])
     time_t rawTime;
     struct tm *timeInfo;
     char *resultTime;
+    J job;
     pid_t pid;
     pid = fork();
     if (pid < 0)
@@ -323,7 +457,20 @@ int Internal_time(CMD command, int fd[2])
     }
     else
     {
-        waitpid(pid, NULL, 0);
+        if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
+        }
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
         return 0;
     }
 }
@@ -331,6 +478,7 @@ int Internal_time(CMD command, int fd[2])
 int Internal_umask(CMD command, int fd[2])
 {
     mode_t mode;
+    J job;
     pid_t pid;
     // set umask if any argument
     if (command->argc > 2)
@@ -355,9 +503,21 @@ int Internal_umask(CMD command, int fd[2])
         }
         else
         {
-            waitpid(pid, NULL, 0);
+            if (command->backgroud)
+        {
+            signal(SIGCHLD, SIG_IGN);
+            job = NewJob();
+            job->command = command;
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
+            waitpid(pid, NULL, WNOHANG);
         }
-        
+        else
+        {
+            waitpid(pid, NULL, WUNTRACED);
+        }
+        }
     }
     return 0;
 }

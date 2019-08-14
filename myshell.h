@@ -17,5 +17,7 @@ void setpath(char* newpath);
 // int is_pipe(char* cmd, int cmdlen); defined in process.h
 // int is_io_redirect(char* cmd, int cmdlen); defined in process.h
 // int normal_cmd(char* cmd, int cmdlen, int infd, int out, int fork); defined in process.h
+void Prompt();
 void Error(char* errorMessage);
+void sigchldhdlr();
 #endif
