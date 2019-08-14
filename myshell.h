@@ -1,5 +1,5 @@
 #ifndef MYSHELL_H
-#define MYSHELL_H_
+#define MYSHELL_H
 #include <stdio.h>
 #define MAX_LINE 80
 #define MAX_TOKEN 80

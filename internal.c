@@ -91,7 +91,7 @@ int Internal_dir(CMD command, int fd[2])
             fprintf(stderr, "%s: %s\n", "cannot open dir", command->argv[1]);
             exit(EXIT_FAILURE);
         }
-        while (ptr = readdir(dir))
+        while ((ptr = readdir(dir)) != NULL)
             printf("%s\n", ptr->d_name);
         closedir(dir);
         exit(EXIT_SUCCESS);
