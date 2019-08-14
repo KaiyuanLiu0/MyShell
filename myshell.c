@@ -94,12 +94,31 @@ void Error(char* errorMessage)
     perror(errorMessage);
 }
 
+int ExecFile(char* fileName)
+{
+    int fd = open(fileName, O_RDONLY);
+    if (fd < 0)
+        return -1;
+    dup2(fd, STDIN_FILENO);
+    return 0;    
+}
+
 int main(int argc, char* argv[])
 {
     CMDL cmdl;
-    char *args[MAX_LINE/2 + 1];
     int should_run = 1;
     pid_t pid;
+    int ret;
+    // char *args[MAX_LINE/2 + 1];
+    if (argc > 1)
+    {
+        ret = ExecFile(argv[1]);
+        if (ret < 0)
+        {
+            Error("cannot open file\n");
+            exit(ret);
+        }
+    }
     init();
     while (should_run)
     {
@@ -107,6 +126,7 @@ int main(int argc, char* argv[])
         cmdl = ReadCommand();
         ExecuteCommand(cmdl);
     }
+    return 0;
     // int i;
     // CMDL cmdl;
     // cmdl = ReadCommand();

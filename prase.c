@@ -24,6 +24,8 @@ static char *ReadLine()
     {
         buffer[pos++] = ch;
     }
+    if (ch == EOF)
+        exit(EXIT_SUCCESS);
     buffer[pos] = '\0';
     // command too long
     if (pos == MAX_LINE - 1)
