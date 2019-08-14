@@ -299,7 +299,7 @@ int ExecuteCommand_External(CMD command, int fd[2])
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;

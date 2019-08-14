@@ -17,45 +17,51 @@
 #include "prase.h"
 #include "myshell.h"
 
-void sigchldhdlr()
+void Fun_SIG_CHLD()
 {
     pid_t pid;
     J job;
-    pid = wait(NULL);
-    if (pid > 0)
+    pid = wait(NULL); // catch the child process
+    if (pid > 0) // if catched
     {
-        job = DeleteJob(pid);
-        if (job)
+        job = DeleteJob(pid); // delete it from the job list
+        if (job) // delete success
         {
-            if (reading)
+            if (reading) // if it's reading from user
                 printf("\n[%d] %d done    %s\n", job->jid, pid, job->command->cmd);
             else
                 printf("[%d] %d done    %s\n", job->jid, pid, job->command->cmd);
         }
         free(job);
-        // Prompt();
     }
 }
 
-// print a prompt
-// precondition: none
-// postcondition: a prompt printed
-void Prompt()
+void Error(char* errorMessage)
 {
-    char user[BUFFER_SIZE];
-    char hostname[BUFFER_SIZE];
-    char* path = getcwd(NULL, 0);
-    getlogin_r(user, sizeof(char) * BUFFER_SIZE);
-    gethostname(hostname, sizeof(char) * BUFFER_SIZE);
-    fprintf(stdout, COLOR_GREEN "%s@%s:", user, hostname);
-    fprintf(stdout, COLOR_CYAN "%s$ ", path);
-    fprintf(stdout, COLOR_NONE);
+    fprintf(stderr, "%s\n", errorMessage); // print stand error
 }
 
-// init the shell
-// precondition: none
-// postcondition: the shell is initialized
-void init()
+// execute file if assigned 
+// this function will redirect the file to stdin
+// which means the shell will read constantly from
+// the file until it meets the EOF
+// precondition: the file name of the file to be executed
+// postcondition: 0 for success, -1 for failure
+static int ExecFile(char* fileName)
+{
+    int fd = open(fileName, O_RDONLY); // open the file in read mode
+    if (fd < 0)
+        return -1;
+    dup2(fd, STDIN_FILENO); // duplicate the file discriptor to stdin
+    return 0;    
+}
+
+// This init will init the shell
+// both the environmental variables
+// and the handlers of signals
+// Precondition: none
+// Postcondition: the shell is initialized 
+static void init()
 {
     // the shell path
     char* path;
@@ -83,24 +89,26 @@ void init()
     setenv("parent", parent, 1);
     // setpath("/bin:/usr/bin");
     free(path);
+    // set signal
     signal(SIGINT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGCONT, SIG_DFL);
 }
 
 
-void Error(char* errorMessage)
+// print a prompt to stdout
+// Precondition: none
+// Postcondition: prompt printed
+static void Prompt()
 {
-    perror(errorMessage);
-}
-
-int ExecFile(char* fileName)
-{
-    int fd = open(fileName, O_RDONLY);
-    if (fd < 0)
-        return -1;
-    dup2(fd, STDIN_FILENO);
-    return 0;    
+    char user[BUFFER_SIZE];
+    char hostname[BUFFER_SIZE];
+    char* path = getcwd(NULL, 0);
+    getlogin_r(user, sizeof(char) * BUFFER_SIZE); // the user name
+    gethostname(hostname, sizeof(char) * BUFFER_SIZE); // the host name
+    fprintf(stdout, COLOR_GREEN "%s@%s:", user, hostname);
+    fprintf(stdout, COLOR_CYAN "%s$ ", path); // the path
+    fprintf(stdout, COLOR_NONE);
 }
 
 int main(int argc, char* argv[])
@@ -119,12 +127,12 @@ int main(int argc, char* argv[])
             exit(ret);
         }
     }
-    init();
-    while (should_run)
+    init(); // init the shell
+    while (should_run) 
     {
-        Prompt();
-        cmdl = ReadCommand();
-        ExecuteCommand(cmdl);
+        Prompt(); // print the prompt message
+        cmdl = ReadCommand(); // read command from stdin
+        ExecuteCommand(cmdl); // execute it
     }
     return 0;
     // int i;

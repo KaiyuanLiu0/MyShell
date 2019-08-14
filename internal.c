@@ -15,8 +15,7 @@
 #include <sys/ipc.h>
 #include "internal.h"
 #include "process.h"
-// extern int Dup(CMD command, int fd[2]);
-// extern int PrintJobList(unsigned int jid);
+
 int Internal_bg(CMD command, int fd[2])
 {
     J job;
@@ -114,7 +113,7 @@ int Internal_dir(CMD command, int fd[2])
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;
@@ -162,7 +161,7 @@ int Internal_echo(CMD command, int fd[2])
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;
@@ -232,7 +231,7 @@ int Internal_environ(CMD command, int fd[2])
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;
@@ -290,7 +289,7 @@ int Internal_help(CMD command, int fd[2])
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;
@@ -325,13 +324,14 @@ int Internal_jobs(CMD command, int fd[2])
     else if (pid == 0)
     {
         PrintJobList(0);
+        exit(EXIT_SUCCESS);
     }
     else
     {
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;
@@ -381,7 +381,7 @@ int Internal_pwd(CMD command, int fd[2])
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;
@@ -463,7 +463,7 @@ int Internal_test(CMD command, int fd[2])
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;
@@ -512,7 +512,7 @@ int Internal_time(CMD command, int fd[2])
         if (command->background)
         {
             ClosePipe(fd);
-            signal(SIGCHLD, sigchldhdlr);
+            signal(SIGCHLD, Fun_SIG_CHLD);
             job = NewJob();
             job->command = command;
             job->pid = pid;
@@ -565,7 +565,7 @@ int Internal_umask(CMD command, int fd[2])
             if (command->background)
             {
                 ClosePipe(fd);
-                signal(SIGCHLD, sigchldhdlr);
+                signal(SIGCHLD, Fun_SIG_CHLD);
                 job = NewJob();
                 job->command = command;
                 job->pid = pid;
