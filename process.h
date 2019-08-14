@@ -50,5 +50,7 @@ J NewJob();
 J DeleteJob(pid_t pid);
 int Foreground(jid_t jid);
 int Background(jid_t jid);
-
+int CheckZombie();
+int WaitChild();
+int ClosePipe(int *fd);
 #endif

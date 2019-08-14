@@ -296,7 +296,7 @@ int ExecuteCommand_External(CMD command, int fd[2])
     }
     else // parent process
     {
-        if (command->backgroud)
+        if (command->background)
         {
             ClosePipe(fd);
             signal(SIGCHLD, sigchldhdlr);
@@ -316,7 +316,6 @@ int ExecuteCommand_External(CMD command, int fd[2])
             else
                 waitpid(pid, &status, WUNTRACED);
         }
-        CheckZombie();
         return 0;
     }
 }
@@ -430,5 +429,6 @@ int ExecuteCommand(CMDL cmdl)
             ExecuteCommand_Internal(cmdl->command[i], cmd_id, fd);
         else // external command
             ExecuteCommand_External(cmdl->command[i], fd);
+        CheckZombie();
     }
 }

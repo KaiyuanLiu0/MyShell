@@ -10,4 +10,4 @@ all: $(OBJ)
 .PHONY: clean
 
 clean:
-	rm -f $(OBJ) $(TARGET)
+	$(RM) $(TARGET) $(OBJ)

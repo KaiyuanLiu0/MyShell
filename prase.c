@@ -93,7 +93,7 @@ static CMD InitializeCommand()
     command->in = NULL;
     command->out = NULL;
     command->append = false;
-    command->backgroud = false;
+    command->background = false;
 }
 
 static CMDL InitializeCommandLine()
@@ -158,7 +158,7 @@ static CMDL SplitCommand(char **tokens)
         }
         if (!strcmp(tokens[position], "&"))
         {
-            command->backgroud = true;
+            command->background = true;
             begin = true;
             continue;
         }

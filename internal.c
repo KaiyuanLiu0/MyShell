@@ -80,7 +80,8 @@ int Internal_clr(CMD command, int fd[2])
 
 int Internal_dir(CMD command, int fd[2])
 {
-    char errorMessage[512];
+    int status;
+    char errorMessage[BUFFER_SIZE];
     DIR *dir;
     struct dirent *ptr;
     J job;
@@ -110,19 +111,25 @@ int Internal_dir(CMD command, int fd[2])
     }
     else
     {
-        if (command->backgroud)
+        if (command->background)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, NULL, WUNTRACED);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
         return 0;
     }
@@ -131,6 +138,7 @@ int Internal_dir(CMD command, int fd[2])
 int Internal_echo(CMD command, int fd[2])
 {
     int i;
+    int status;
     J job;
     pid_t pid;
     pid = fork();
@@ -151,19 +159,25 @@ int Internal_echo(CMD command, int fd[2])
     }
     else
     {
-        if (command->backgroud)
+        if (command->background)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, NULL, WUNTRACED);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
         return 0;
     }
@@ -197,6 +211,7 @@ int Internal_environ(CMD command, int fd[2])
 {
     extern char **environ;
     char **env = environ;
+    int status;
     J job;
     pid_t pid;
     pid = fork();
@@ -214,19 +229,25 @@ int Internal_environ(CMD command, int fd[2])
     }
     else
     {
-        if (command->backgroud)
+        if (command->background)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, NULL, WUNTRACED);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
         return 0;
     }
@@ -249,6 +270,7 @@ int Internal_fg(CMD command, int fd[2])
 
 int Internal_help(CMD command, int fd[2])
 {
+    int status;
     J job;
     int pid;
     pid = fork();
@@ -265,25 +287,33 @@ int Internal_help(CMD command, int fd[2])
     }
     else
     {
-        if (command->backgroud)
+        if (command->background)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, NULL, WUNTRACED);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
+        return 0;
     }
 }
 
 int Internal_jobs(CMD command, int fd[2])
 {
+    int status;
     J job;
     pid_t pid;
     pid = fork();
@@ -298,20 +328,27 @@ int Internal_jobs(CMD command, int fd[2])
     }
     else
     {
-        if (command->backgroud)
+        if (command->background)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, NULL, WUNTRACED);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
+        return 0;
     }
 }
 
@@ -319,6 +356,7 @@ int Internal_jobs(CMD command, int fd[2])
 int Internal_pwd(CMD command, int fd[2])
 {
     char *path;
+    int status;
     J job;
     pid_t pid;
     pid = fork(); // fork a new process
@@ -340,20 +378,27 @@ int Internal_pwd(CMD command, int fd[2])
     }
     else // parent process
     {
-        if (command->backgroud)
+        if (command->background)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, NULL, WUNTRACED);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
+        return 0;
     }
     return 0;
 }
@@ -415,22 +460,28 @@ int Internal_test(CMD command, int fd[2])
     }
     else
     {
-        if (command->backgroud)
+        if (command->background)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, NULL, WUNTRACED);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
+        return 0;
     }
-    return 0;
 }
 
 int Internal_time(CMD command, int fd[2])
@@ -438,6 +489,7 @@ int Internal_time(CMD command, int fd[2])
     time_t rawTime;
     struct tm *timeInfo;
     char *resultTime;
+    int status;
     J job;
     pid_t pid;
     pid = fork();
@@ -457,19 +509,25 @@ int Internal_time(CMD command, int fd[2])
     }
     else
     {
-        if (command->backgroud)
+        if (command->background)
         {
-            signal(SIGCHLD, SIG_IGN);
+            ClosePipe(fd);
+            signal(SIGCHLD, sigchldhdlr);
             job = NewJob();
             job->command = command;
             job->pid = pid;
             AddJob(job);
             setpgid(pid, job->pid);
+            WaitChild();
             waitpid(pid, NULL, WNOHANG);
         }
         else
         {
-            waitpid(pid, NULL, WUNTRACED);
+            ClosePipe(fd);
+            if (is_pipe(command))
+                waitpid(pid, &status, WNOHANG);
+            else
+                waitpid(pid, &status, WUNTRACED);
         }
         return 0;
     }
@@ -478,6 +536,7 @@ int Internal_time(CMD command, int fd[2])
 int Internal_umask(CMD command, int fd[2])
 {
     mode_t mode;
+    int status;
     J job;
     pid_t pid;
     // set umask if any argument
@@ -503,20 +562,26 @@ int Internal_umask(CMD command, int fd[2])
         }
         else
         {
-            if (command->backgroud)
-        {
-            signal(SIGCHLD, SIG_IGN);
-            job = NewJob();
-            job->command = command;
-            job->pid = pid;
-            AddJob(job);
-            setpgid(pid, job->pid);
-            waitpid(pid, NULL, WNOHANG);
-        }
-        else
-        {
-            waitpid(pid, NULL, WUNTRACED);
-        }
+            if (command->background)
+            {
+                ClosePipe(fd);
+                signal(SIGCHLD, sigchldhdlr);
+                job = NewJob();
+                job->command = command;
+                job->pid = pid;
+                AddJob(job);
+                setpgid(pid, job->pid);
+                WaitChild();
+                waitpid(pid, NULL, WNOHANG);
+            }
+            else
+            {
+                ClosePipe(fd);
+                if (is_pipe(command))
+                    waitpid(pid, &status, WNOHANG);
+                else
+                    waitpid(pid, &status, WUNTRACED);
+            }
         }
     }
     return 0;
