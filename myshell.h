@@ -3,7 +3,7 @@
 #include <stdio.h>
 #define MAX_LINE 80
 #define MAX_TOKEN 80
-
+#define BUFFER_SIZE 80
 #define COLOR_NONE "\033[m"
 #define COLOR_RED "\033[1;37;41m"
 #define COLOR_YELLOW "\033[1;33m"

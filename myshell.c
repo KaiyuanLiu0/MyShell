@@ -22,11 +22,13 @@
 // postcondition: a prompt printed
 static void Prompt()
 {
-    char user[512];
+    char user[BUFFER_SIZE];
+    char hostname[BUFFER_SIZE];
     char* path = getcwd(NULL, 0);
-    getlogin_r(user, sizeof(char) * 512);
-    printf(COLOR_RED "%s ", user);
-    printf(COLOR_CYAN "%s> ", path);
+    getlogin_r(user, sizeof(char) * BUFFER_SIZE);
+    gethostname(hostname, sizeof(char) * BUFFER_SIZE);
+    printf(COLOR_GREEN "%s@%s:", user, hostname);
+    printf(COLOR_CYAN "%s$ ", path);
     printf(COLOR_NONE);
 }
 
