@@ -47,6 +47,8 @@ static J fregroundJobList = NULL;
 static J LastJob(J job)
 {
     J ptr_job;
+    if (job == NULL)
+        fprintf(stderr, "NOPE\n");
     while (ptr_job)
     {
         if (ptr_job->next == job)
@@ -70,7 +72,7 @@ static J FindJob(jid_t jid)
     return ptr_job;
 }
 
-static int PrintJobList(jid_t jid)
+int PrintJobList(jid_t jid)
 {
     J ptr_job;
 
@@ -80,7 +82,7 @@ static int PrintJobList(jid_t jid)
         // first, find it 
         ptr_job = FindJob(jid);
         if (ptr_job) // if found
-            printf("[%u] %d %s\n", ptr_job->jid, ptr_job->pgid, ptr_job->command->cmd);
+            printf("[%u] %d %s\n", ptr_job->jid, ptr_job->pid, ptr_job->command->cmd);
         else
             Error("no such job\n");  
     }
@@ -89,7 +91,7 @@ static int PrintJobList(jid_t jid)
         ptr_job = jobList;
         while (ptr_job)
         {
-            printf("[%u] %d %s\n", ptr_job->jid, ptr_job->pgid, ptr_job->command->cmd);
+            printf("[%u] %d %s\n", ptr_job->jid, ptr_job->pid, ptr_job->command->cmd);
             ptr_job = ptr_job->next;
         }
     }
@@ -98,7 +100,7 @@ static int PrintJobList(jid_t jid)
 
 static int AddJob(J job)
 {
-    J ptr_job = job;
+    J ptr_job = jobList;
     jid_t jid = 0;
     // the job with greatest jid
     while (ptr_job)
@@ -108,26 +110,32 @@ static int AddJob(J job)
         ptr_job = ptr_job->next;
     }
     job->jid = jid + 1;
-    ptr_job = LastJob(job);
-    if (!ptr_job) // the job list is empty, set the job head
+    ptr_job = jobList;
+    if (!ptr_job)
         jobList = job;
     else
+    {
+        while (ptr_job->next)
+            ptr_job = ptr_job->next;
         ptr_job->next = job;
-    job->next = NULL;
+        job->next = NULL;
+    }
     PrintJobList(job->jid);
+    // PrintJobList(0);
     return 0;
 }
 
 static J NewJob()
 {
     J job = (J)malloc(sizeof(struct Job));
-    job->pgid = 0;
+    job->pid = 0;
     job->jid = 0;
     job->command=NULL;
     job->size = 0;
     job->next = NULL;
     return job;
 }
+
 static int ProcessDone(J job)
 {
     J ptr_job;
@@ -139,7 +147,7 @@ static int ProcessDone(J job)
             jobList  = job->next;
         else
             ptr_job->next = job->next;
-        printf("[%d] %d done\t%s\n", job->jid, job->pgid, job->command->cmd);
+        printf("[%d] %d done\t%s\n", job->jid, job->pid, job->command->cmd);
         free(job);
     }
 }
@@ -165,12 +173,12 @@ enum CMD_ID is_internal_cmd(CMD command)
 
 int is_pipe(CMD command)
 {
-    return 0;
+    return command->pipe;
 }
 
 int is_io_redirect(CMD command)
 {
-    return 0;
+    return command->in || command->out;
 }
 
 int normal_cmd(char *cmd, int cmdlen, int infd, int out, int fork)
@@ -191,6 +199,9 @@ static int ExecuteCommand_Internal(CMD command, enum CMD_ID cmd_id, int fd[2])
         break;
     case _CLR:
         flag = Internal_clr(command, fd);
+        break;
+    case _DIR:
+        flag = Internal_dir(command, fd);
         break;
     case _ECHO:
         flag = Internal_echo(command, fd);
@@ -242,12 +253,14 @@ static int ExecuteCommand_Internal(CMD command, enum CMD_ID cmd_id, int fd[2])
     }
 }
 
+
 // execute external command
 int ExecuteCommand_External(CMD command, int fd[2])
 {
+    int status;
     J job;
     pid_t pid;    // process id
-    pid = fork(); // create a child process
+    pid = vfork(); // create a child process
     if (pid < 0)  // error
     {
         Error("Cannot create a child process");
@@ -266,18 +279,24 @@ int ExecuteCommand_External(CMD command, int fd[2])
     else // parent process
     {
         signal(SIGINT, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN);
+        signal(SIGTSTP, SIG_IGN); // important
         signal(SIGCONT, SIG_DFL);
         if (command->backgroud)
         {
             signal(SIGCHLD, SIG_IGN);
             job = NewJob();
             job->command = command;
-            setpgid(pid, job->pgid);
+            job->pid = pid;
+            AddJob(job);
+            setpgid(pid, job->pid);
             waitpid(pid, NULL, WNOHANG);
         }
         else
-            waitpid(pid, NULL, WUNTRACED);
+        {
+            waitpid(pid, &status, WUNTRACED);
+            printf("status: %d, pid = %d\n", status, pid);
+        }
+        sleep(0.2);
         return 0;
     }
 }
@@ -288,8 +307,8 @@ int Foreground(jid_t jid)
     J job = FindJob(jid);
     if (job)
     {
-        tcsetpgrp(STDIN_FILENO, job->pgid);
-        ret = kill(job->pgid, SIGCONT);
+        tcsetpgrp(STDIN_FILENO, job->pid);
+        ret = kill(job->pid, SIGCONT);
         if (ret < 0)
             Error("fg: job not found");
     }
@@ -304,7 +323,7 @@ int Background(jid_t jid)
     J job = FindJob(jid);
     if (job) // if found
     {
-        ret = kill(job->pgid, SIGCONT);
+        ret = kill(job->pid, SIGCONT);
     }
     else
     {

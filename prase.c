@@ -133,14 +133,12 @@ static CMDL SplitCommand(char **tokens)
                     command->argv[i] = argumentList[i];
                 }
                 commandList[cmdl->size++] = command;
+                command = InitializeCommand();
             }
-            else
-            {
                 // create a command
                 command = InitializeCommand();
                 command->cmd = (char*) malloc(sizeof(char) * (strlen(tokens[position]) + 1));
                 strcpy(command->cmd, tokens[position]);
-            }
         }
         if (redirect_out)
         {
@@ -171,6 +169,12 @@ static CMDL SplitCommand(char **tokens)
         if (!strcmp(tokens[position], "<"))
         {
             redirect_in = true;
+            continue;
+        }
+        if (!strcmp(tokens[position], "|"))
+        {
+            command->pipe = true;
+            begin = true;
             continue;
         }
         argument = (char*) malloc(sizeof(char) * (strlen(tokens[position] + 1)));

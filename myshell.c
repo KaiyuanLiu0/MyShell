@@ -22,8 +22,12 @@
 // postcondition: a prompt printed
 static void Prompt()
 {
+    char user[512];
     char* path = getcwd(NULL, 0);
-    printf("%s> ", path);
+    getlogin_r(user, sizeof(char) * 512);
+    printf(COLOR_RED "%s ", user);
+    printf(COLOR_CYAN "%s> ", path);
+    printf(COLOR_NONE);
 }
 
 // init the shell
@@ -84,11 +88,12 @@ int main(int argc, char* argv[])
     // int i;
     // CMDL cmdl;
     // cmdl = ReadCommand();
-    // printf("cmd: %s\n", cmdl->command[0]->cmd);
+    // printf("cmd: %s\n", cmdl->command[1]->cmd);
     // printf("args: ");
-    // for (i = 0; i < cmdl->command[0]->argc - 1; ++i)
-    //     printf("%s ", cmdl->command[0]->argv[i]);
+    // for (i = 0; i < cmdl->command[1]->argc - 1; ++i)
+    //     printf("%s ", cmdl->command[1]->argv[i]);
     // printf("\n");
-    // printf("in: %s\n", cmdl->command[0]->in);
-    // printf("out: %s\n", cmdl->command[0]->out);
+    // printf("in: %s\n", cmdl->command[1]->in);
+    // printf("out: %s\n", cmdl->command[1]->out);
+    // printf("size: %d\n", cmdl->size);
 }

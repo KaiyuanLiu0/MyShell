@@ -16,6 +16,7 @@
 #include "internal.h"
 
 extern int Dup(CMD command, int fd[2]);
+extern int PrintJobList(unsigned int jid);
 int Internal_bg(CMD command, int fd[2])
 {
     ;    
@@ -68,7 +69,38 @@ int Internal_clr(CMD command, int fd[2])
 
 int Internal_dir(CMD command, int fd[2])
 {
+    char errorMessage[512];
+    DIR *dir;
+    struct dirent *ptr;
     pid_t pid;
+    pid = fork();
+    if (pid < 0)
+    {
+        Error("fork error");
+        return -1;
+    }
+    else if (pid == 0)
+    {
+        Dup(command, fd);
+        if (command->argc > 2)
+            dir = opendir(command->argv[1]);
+        else
+            dir = opendir(getenv("PWD"));
+        if (dir == NULL)
+        {
+            fprintf(stderr, "%s: %s\n", "cannot open dir", command->argv[1]);
+            exit(EXIT_FAILURE);
+        }
+        while (ptr = readdir(dir))
+            printf("%s\n", ptr->d_name);
+        closedir(dir);
+        exit(EXIT_SUCCESS);
+    }
+    else
+    {
+        waitpid(pid, NULL, 0);
+        return 0;
+    }
 }
 
 int Internal_echo(CMD command, int fd[2])
@@ -175,7 +207,7 @@ int Internal_help(CMD command, int fd[2])
 
 int Internal_jobs(CMD command, int fd[2])
 {
-    ;
+    PrintJobList(0);
 }
 
 // pwd
@@ -227,7 +259,7 @@ int Internal_set(CMD command, int fd[2])
 
 int Internal_shift(CMD command, int fd[2])
 {
-    shiftarg();
+    // shiftarg();
     return 0;
 }
 

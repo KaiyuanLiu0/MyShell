@@ -6,7 +6,7 @@
 typedef unsigned int jid_t;
 // store background jobs
 typedef struct Job {
-    pid_t pgid;
+    pid_t pid;
     jid_t jid;
     CMD command;
     int size;
@@ -44,4 +44,5 @@ int is_io_redirect(CMD command);
 int normal_cmd(char *cmd, int cmdlen, int infd, int out, int fork);
 int ExecuteCommand(CMDL);
 int Dup(CMD command, int fd[2]);
+int PrintJobList(jid_t jid);
 #endif

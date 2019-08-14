@@ -18,6 +18,7 @@ typedef struct Command
     char* out; // redirect out
     bool append; // append or replace
     bool backgroud; // whether backgroud
+    bool pipe; // whether output to pipe
 } *CMD;
 
 // a line of command
