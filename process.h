@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "prase.h"
 
+// job id, for background process
 typedef unsigned int jid_t;
 // store background jobs
 typedef struct Job {
@@ -38,19 +39,45 @@ enum CMD_ID
     _NOT_INTERNAL
 };
 
-enum CMD_ID is_internal_cmd(CMD);
-int is_pipe(CMD command);
-int is_io_redirect(CMD command);
-int normal_cmd(char *cmd, int cmdlen, int infd, int out, int fork);
-int ExecuteCommand(CMDL);
-int Dup(CMD command, int fd[2]);
+// if jid is 0, then print the whole job list
+// if jid is not 0, then print the corresponding job
 int PrintJobList(jid_t jid);
-int AddJob(J job);
+
+// create a new initialized job
 J NewJob();
+
+// add the job to the job list
+int AddJob(J job);
+
+// delete the job from the job list
 J DeleteJob(pid_t pid);
-int Foreground(jid_t jid);
+
+// whether it is pipe
+int is_pipe(CMD command);
+
+// used for bg
 int Background(jid_t jid);
-int CheckZombie();
-int WaitChild();
+
+// used for fg
+int Foreground(jid_t jid);
+
+// dup stdin and stdout
+// this is used for both redirection and pipe
+int Dup(CMD command, int fd[2]);
+
+// close the pipe if not closed
 int ClosePipe(int *fd);
+
+// wait the child for a short time
+// this is used to let the parent process
+// wait for some very quick background commands 
+// then the shell output will be more fancy
+int WaitChild();
+
+// check if any zombie process
+int CheckZombie();
+
+// Execute the command
+// no matter whether it's internal or external or even wrong
+int ExecuteCommand(CMDL);
 #endif

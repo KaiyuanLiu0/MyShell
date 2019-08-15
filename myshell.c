@@ -52,7 +52,7 @@ static int ExecFile(char* fileName)
     int fd = open(fileName, O_RDONLY); // open the file in read mode
     if (fd < 0)
         return -1;
-    dup2(fd, STDIN_FILENO); // duplicate the file discriptor to stdin
+    dup2(fd, STDIN_FILENO); // duplicate the file descriptor to stdin
     return 0;    
 }
 

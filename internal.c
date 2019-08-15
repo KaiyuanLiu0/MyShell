@@ -16,12 +16,15 @@
 #include "internal.h"
 #include "process.h"
 
+
 int Internal_bg(CMD command, int fd[2])
 {
     J job;
     jid_t jid;
+    // if the jid is given
     if (command->argc > 2)
     {
+        // char* to integer
         jid = atoi(command->argv[1]);
         return Background(jid);
     }
@@ -32,7 +35,6 @@ int Internal_bg(CMD command, int fd[2])
     }
 }
 
-// cd
 int Internal_cd(CMD command, int fd[2])
 {
     int ret;
@@ -42,14 +44,15 @@ int Internal_cd(CMD command, int fd[2])
     {
         // change dir
         ret = chdir(command->argv[1]);
-        // set env
+        // set environmental variables
         path = getcwd(NULL, 0);
         setenv("PWD", path, 1);
         free(path);
     }
     else
     {
-        // cd to the home path
+        // if no arguments given
+        // cd to the home directory
         path = getenv("HOME");
         ret = chdir(path);
         setenv("PWD", path, 1);
@@ -57,7 +60,6 @@ int Internal_cd(CMD command, int fd[2])
     return ret;
 }
 
-// clear
 int Internal_clr(CMD command, int fd[2])
 {
     // string to clear the screen
@@ -93,9 +95,12 @@ int Internal_dir(CMD command, int fd[2])
     }
     else if (pid == 0)
     {
+        // redirect and pipe
         Dup(command, fd);
+        // if path given
         if (command->argc > 2)
             dir = opendir(command->argv[1]);
+        // path not given
         else
             dir = opendir(getenv("PWD"));
         if (dir == NULL)
@@ -103,13 +108,16 @@ int Internal_dir(CMD command, int fd[2])
             fprintf(stderr, "%s: %s\n", "cannot open dir", command->argv[1]);
             exit(EXIT_FAILURE);
         }
+        // loop to display
         while ((ptr = readdir(dir)) != NULL)
             printf("%s\n", ptr->d_name);
+        // close the directory
         closedir(dir);
         exit(EXIT_SUCCESS);
     }
     else
     {
+        // the same as external background running
         if (command->background)
         {
             ClosePipe(fd);
@@ -148,7 +156,9 @@ int Internal_echo(CMD command, int fd[2])
     }
     else if (pid == 0)
     {
+        // redirect and pipe
         Dup(command, fd);
+        // print each arguments
         for (i = 1; i < command->argc - 1; ++i)
         {
             printf("%s ", command->argv[i]);
@@ -158,6 +168,7 @@ int Internal_echo(CMD command, int fd[2])
     }
     else
     {
+        // the same as external background running
         if (command->background)
         {
             ClosePipe(fd);
@@ -191,6 +202,7 @@ int Internal_exec(CMD command, int fd[2])
     // argc > 2 means exec has instead command
     if (command->argc > 2)
     {
+        // call the exec
         ret = execvp(command->argv[1], command->argv + 1);
         if (ret < 0) // exec fail
         {
@@ -200,9 +212,9 @@ int Internal_exec(CMD command, int fd[2])
     return 0;
 }
 
-// exit
 int Internal_exit(CMD command, int fd[2])
 {
+    // exit 
     exit(EXIT_SUCCESS);
 }
 
@@ -221,13 +233,16 @@ int Internal_environ(CMD command, int fd[2])
     }
     else if (pid == 0) // child
     {
+        // redirect and pipe
         Dup(command, fd);
+        // loop to display
         while (*env)
             puts(*env++);
         exit(EXIT_SUCCESS);
     }
     else
     {
+        // the same as external background running
         if (command->background)
         {
             ClosePipe(fd);
@@ -257,7 +272,9 @@ int Internal_fg(CMD command, int fd[2])
     jid_t jid;
     if (command->argc > 2)
     {   
+        // get the jobid
         jid = atoi(command->argv[1]);
+        // call Foreground
         return Foreground(jid);
     }
     else
@@ -280,12 +297,14 @@ int Internal_help(CMD command, int fd[2])
     }
     else if (pid == 0)
     {
+        // direct and piep
         Dup(command, fd);
         printf("%s\n", "to be done");
         exit(EXIT_SUCCESS);
     }
     else
     {
+        // the same as external background running
         if (command->background)
         {
             ClosePipe(fd);
@@ -323,11 +342,14 @@ int Internal_jobs(CMD command, int fd[2])
     }
     else if (pid == 0)
     {
+        // direct and pipe
+        Dup(command, fd);
         PrintJobList(0);
         exit(EXIT_SUCCESS);
     }
     else
     {
+        // the same as external background running
         if (command->background)
         {
             ClosePipe(fd);
@@ -352,7 +374,6 @@ int Internal_jobs(CMD command, int fd[2])
     }
 }
 
-// pwd
 int Internal_pwd(CMD command, int fd[2])
 {
     char *path;
@@ -378,6 +399,7 @@ int Internal_pwd(CMD command, int fd[2])
     }
     else // parent process
     {
+        // the same as external background running
         if (command->background)
         {
             ClosePipe(fd);
@@ -403,7 +425,6 @@ int Internal_pwd(CMD command, int fd[2])
     return 0;
 }
 
-// exit
 int Internal_quit(CMD command, int fd[2])
 {
     exit(EXIT_SUCCESS);
@@ -415,6 +436,7 @@ int Internal_set(CMD command, int fd[2])
     // if at least two arguments
     if (command->argc > 3)
     {
+        // directly calling setenv
         ret = setenv(command->argv[1], command->argv[2], 1);
         return ret;
     }
@@ -500,15 +522,19 @@ int Internal_time(CMD command, int fd[2])
     }
     else if (pid == 0) // child
     {
-        time(&rawTime);                 // get the raw time
-        timeInfo = localtime(&rawTime); // change to local time
-        resultTime = asctime(timeInfo); // change format
+        // get the raw time
+        time(&rawTime);
+        // change to local time
+        timeInfo = localtime(&rawTime); 
+        // change format
+        resultTime = asctime(timeInfo); 
         Dup(command, fd);
         dprintf(STDOUT_FILENO, "%s", resultTime);
         exit(EXIT_SUCCESS);
     }
     else
     {
+        // the same as external background running
         if (command->background)
         {
             ClosePipe(fd);
@@ -555,13 +581,17 @@ int Internal_umask(CMD command, int fd[2])
         }
         else if (pid == 0)
         {
+            // redirect and pipe
             Dup(command, fd);
+            // return the current umask
             mode = umask(0);
+            umaks(mode);
             printf("%04o\n", mode);
             exit(EXIT_SUCCESS);
         }
         else
         {
+            // the same as external background running
             if (command->background)
             {
                 ClosePipe(fd);
@@ -593,6 +623,7 @@ int Internal_unset(CMD command, int fd[2])
     // at least 1 argument
     if (command->argc > 2)
     {
+        // directly calling unsetenv
         ret = unsetenv(command->argv[1]);
         return ret;
     }

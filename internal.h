@@ -1,6 +1,8 @@
 #ifndef INTERNAL_H_
 #define INTERNAL_H_
 #include "prase.h"
+
+// built_in functions
 int Internal_bg(CMD command, int fd[2]);
 int Internal_cd(CMD command, int fd[2]);
 int Internal_clr(CMD command, int fd[2]);
