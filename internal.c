@@ -585,7 +585,7 @@ int Internal_umask(CMD command, int fd[2])
             Dup(command, fd);
             // return the current umask
             mode = umask(0);
-            umaks(mode);
+            umask(mode);
             printf("%04o\n", mode);
             exit(EXIT_SUCCESS);
         }
